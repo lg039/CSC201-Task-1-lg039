@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<library name="Central" city="Melbourne">
+  <shelf id="A1">
+    <book isbn="978-0132350884">
+      <title>Clean Code</title>
+      <year>2008</year>
+    </book>
+    <book isbn='978-0262033848'>
+      <title>Introduction to Algorithms</title>
+      <year>2009</year>
+    </book>
+  </shelf>
+  <shelf id='A2' note='say "hi" to readers'/>
+</library>
