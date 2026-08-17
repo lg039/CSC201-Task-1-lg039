@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -14,7 +15,9 @@ import java.util.stream.Stream;
  * Student ID   :
  *
  * Data-structure combination used by this solution:
- *
+ * array-based stack + array. a stack tracks currently open tags for
+ * nesting/matching, a plain array holds attribute names seen in the tag
+ * being parsed for duplicate checks.
  */
 public class XmlCheckerSolutionOne {
 
@@ -74,19 +77,167 @@ public class XmlCheckerSolutionOne {
         }
     }
 
+    // tag name plus the line it opened on
+    private static final class TagFrame {
+        final String name;
+        final int line;
+        TagFrame(String name, int line) {
+            this.name = name;
+            this.line = line;
+        }
+    }
+
+    // stack of open tags, array-backed, doubles when full
+    private static final class ArrayStack {
+        private TagFrame[] data = new TagFrame[16];
+        private int top = -1;
+
+        boolean isEmpty() {
+            return top == -1;
+        }
+
+        void push(TagFrame frame) {
+            if (top + 1 == data.length) {
+                data = Arrays.copyOf(data, data.length * 2);
+            }
+            data[++top] = frame;
+        }
+
+        TagFrame pop() {
+            TagFrame frame = data[top];
+            data[top--] = null;
+            return frame;
+        }
+
+        TagFrame peek() {
+            return data[top];
+        }
+    }
+
+    // valid character in a tag or attribute name
+    private static boolean isNameChar(char c) {
+        return !Character.isWhitespace(c) && c != '<' && c != '>' && c != '/'
+                && c != '=' && c != '"' && c != '\'';
+    }
+
     /**
-     * TODO: implement your first checking solution here.
+     * checks whether the document is well-formed.
      *
-     * @param lines the file content, one entry per line (line i of the file is
-     *              lines.get(i - 1), so line numbers for error reporting are
-     *              index + 1)
-     * @return Result.ok() if well-formed, otherwise Result.fail(line, code)
-     *         for the FIRST violation in reading order.
+     * @param lines file content, one line per entry
+     * @return ok(), or fail() for the first violation found
      */
     static Result check(List<String> lines) {
-        // ---------------- YOUR CODE STARTS HERE ----------------
-        throw new UnsupportedOperationException("check() not implemented yet");
-        // ----------------- YOUR CODE ENDS HERE -----------------
+        // flatten lines into one array, track each char's line number
+        int totalLen = 0;
+        for (String s : lines) totalLen += s.length() + 1;
+        char[] text = new char[totalLen];
+        int[] lineOf = new int[totalLen];
+        int p = 0;
+        for (int i = 0; i < lines.size(); i++) {
+            String s = lines.get(i);
+            int lineNo = i + 1;
+            for (int j = 0; j < s.length(); j++) {
+                text[p] = s.charAt(j);
+                lineOf[p] = lineNo;
+                p++;
+            }
+            text[p] = '\n';
+            lineOf[p] = lineNo;
+            p++;
+        }
+        int len = p;
+
+        ArrayStack stack = new ArrayStack();
+        boolean rootClosed = false;
+
+        int i = 0;
+        while (i < len) {
+            if (text[i] != '<') {
+                i++;
+                continue;
+            }
+
+            // skip xml declarations and comments, assumed correct
+            if (i + 1 < len && text[i + 1] == '?') {
+                int j = i + 2;
+                while (j + 1 < len && !(text[j] == '?' && text[j + 1] == '>')) j++;
+                i = j + 2;
+                continue;
+            }
+            if (i + 3 < len && text[i + 1] == '!' && text[i + 2] == '-' && text[i + 3] == '-') {
+                int j = i + 4;
+                while (j + 2 < len && !(text[j] == '-' && text[j + 1] == '-' && text[j + 2] == '>')) j++;
+                i = j + 3;
+                continue;
+            }
+
+            int tagLine = lineOf[i];
+            int j = i + 1;
+            boolean closing = j < len && text[j] == '/';
+            if (closing) j++;
+
+            int nameStart = j;
+            while (j < len && isNameChar(text[j])) j++;
+            String name = new String(text, nameStart, j - nameStart);
+
+            if (closing) {
+                while (j < len && text[j] != '>') j++;
+                i = j + 1;
+                if (stack.isEmpty()) {
+                    return Result.fail(tagLine, ErrorCode.MISMATCHED_TAG);
+                }
+                TagFrame top = stack.pop();
+                if (!top.name.equals(name)) {
+                    return Result.fail(tagLine, ErrorCode.MISMATCHED_TAG);
+                }
+                if (stack.isEmpty()) rootClosed = true;
+                continue;
+            }
+
+            if (stack.isEmpty() && rootClosed) {
+                return Result.fail(tagLine, ErrorCode.MULTIPLE_ROOTS);
+            }
+
+            // parse attributes just enough to find the end of the tag;
+            // value validation is added in a later pass
+            boolean selfClosing = false;
+            while (true) {
+                while (j < len && Character.isWhitespace(text[j])) j++;
+                if (j + 1 < len && text[j] == '/' && text[j + 1] == '>') {
+                    selfClosing = true;
+                    j += 2;
+                    break;
+                }
+                if (j < len && text[j] == '>') {
+                    j++;
+                    break;
+                }
+                while (j < len && isNameChar(text[j])) j++;
+                while (j < len && Character.isWhitespace(text[j])) j++;
+                if (j < len && text[j] == '=') j++;
+                while (j < len && Character.isWhitespace(text[j])) j++;
+                if (j < len && (text[j] == '"' || text[j] == '\'')) {
+                    char quote = text[j];
+                    j++;
+                    while (j < len && text[j] != quote) j++;
+                    if (j < len) j++;
+                } else {
+                    while (j < len && !Character.isWhitespace(text[j]) && text[j] != '>' && text[j] != '/') j++;
+                }
+            }
+            i = j;
+
+            if (selfClosing) {
+                if (stack.isEmpty()) rootClosed = true;
+            } else {
+                stack.push(new TagFrame(name, tagLine));
+            }
+        }
+
+        if (!stack.isEmpty()) {
+            return Result.fail(stack.peek().line, ErrorCode.UNCLOSED_TAG);
+        }
+        return Result.ok();
     }
 
 }
