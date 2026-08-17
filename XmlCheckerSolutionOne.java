@@ -198,8 +198,6 @@ public class XmlCheckerSolutionOne {
                 return Result.fail(tagLine, ErrorCode.MULTIPLE_ROOTS);
             }
 
-            // parse attributes just enough to find the end of the tag;
-            // value validation is added in a later pass
             boolean selfClosing = false;
             while (true) {
                 while (j < len && Character.isWhitespace(text[j])) j++;
@@ -216,14 +214,20 @@ public class XmlCheckerSolutionOne {
                 while (j < len && Character.isWhitespace(text[j])) j++;
                 if (j < len && text[j] == '=') j++;
                 while (j < len && Character.isWhitespace(text[j])) j++;
-                if (j < len && (text[j] == '"' || text[j] == '\'')) {
-                    char quote = text[j];
-                    j++;
-                    while (j < len && text[j] != quote) j++;
-                    if (j < len) j++;
-                } else {
-                    while (j < len && !Character.isWhitespace(text[j]) && text[j] != '>' && text[j] != '/') j++;
+
+                if (j >= len || (text[j] != '"' && text[j] != '\'')) {
+                    int errLine = j < len ? lineOf[j] : lineOf[len - 1];
+                    return Result.fail(errLine, ErrorCode.UNQUOTED_ATTRIBUTE);
                 }
+                char quote = text[j];
+                int valueLine = lineOf[j];
+                j++;
+                while (j < len && text[j] != quote) j++;
+                // must close with the same quote it opened with
+                if (j >= len) {
+                    return Result.fail(valueLine, ErrorCode.UNQUOTED_ATTRIBUTE);
+                }
+                j++;
             }
             i = j;
 
