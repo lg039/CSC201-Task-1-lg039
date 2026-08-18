@@ -198,6 +198,10 @@ public class XmlCheckerSolutionOne {
                 return Result.fail(tagLine, ErrorCode.MULTIPLE_ROOTS);
             }
 
+            // track attribute names for duplicate checks
+            String[] attrNames = new String[4];
+            int attrCount = 0;
+
             boolean selfClosing = false;
             while (true) {
                 while (j < len && Character.isWhitespace(text[j])) j++;
@@ -210,7 +214,19 @@ public class XmlCheckerSolutionOne {
                     j++;
                     break;
                 }
+                int attrNameStart = j;
                 while (j < len && isNameChar(text[j])) j++;
+                String attrName = new String(text, attrNameStart, j - attrNameStart);
+                for (int k = 0; k < attrCount; k++) {
+                    if (attrNames[k].equals(attrName)) {
+                        return Result.fail(lineOf[attrNameStart], ErrorCode.DUPLICATE_ATTRIBUTE);
+                    }
+                }
+                if (attrCount == attrNames.length) {
+                    attrNames = Arrays.copyOf(attrNames, attrNames.length * 2);
+                }
+                attrNames[attrCount++] = attrName;
+
                 while (j < len && Character.isWhitespace(text[j])) j++;
                 if (j < len && text[j] == '=') j++;
                 while (j < len && Character.isWhitespace(text[j])) j++;
