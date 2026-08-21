@@ -165,14 +165,20 @@ public class XmlCheckerSolutionTwo {
                 while (pos < len && Character.isWhitespace(text[pos])) pos++;
                 if (pos < len && text[pos] == '=') pos++;
                 while (pos < len && Character.isWhitespace(text[pos])) pos++;
-                if (pos < len && (text[pos] == '"' || text[pos] == '\'')) {
-                    char quote = text[pos];
-                    pos++;
-                    while (pos < len && text[pos] != quote) pos++;
-                    if (pos < len) pos++;
-                } else {
-                    while (pos < len && !Character.isWhitespace(text[pos]) && text[pos] != '>' && text[pos] != '/') pos++;
+
+                if (pos >= len || (text[pos] != '"' && text[pos] != '\'')) {
+                    int errLine = pos < len ? lineOf[pos] : lineOf[len - 1];
+                    return Result.fail(errLine, ErrorCode.UNQUOTED_ATTRIBUTE);
                 }
+                char quote = text[pos];
+                int valueLine = lineOf[pos];
+                pos++;
+                while (pos < len && text[pos] != quote) pos++;
+                // must close with the same quote it opened with
+                if (pos >= len) {
+                    return Result.fail(valueLine, ErrorCode.UNQUOTED_ATTRIBUTE);
+                }
+                pos++;
             }
 
             if (selfClosing) {
