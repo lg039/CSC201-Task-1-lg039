@@ -76,6 +76,32 @@ public class XmlCheckerSolutionTwo {
         }
     }
 
+    // one node of the attribute-name list
+    private static final class NameNode {
+        final String name;
+        final NameNode next;
+        NameNode(String name, NameNode next) {
+            this.name = name;
+            this.next = next;
+        }
+    }
+
+    // linked list of attribute names seen in the current tag
+    private static final class NameList {
+        private NameNode head = null;
+
+        boolean contains(String name) {
+            for (NameNode n = head; n != null; n = n.next) {
+                if (n.name.equals(name)) return true;
+            }
+            return false;
+        }
+
+        void addFirst(String name) {
+            head = new NameNode(name, head);
+        }
+    }
+
     // valid character in a tag or attribute name
     private static boolean isNameChar(char c) {
         return !Character.isWhitespace(c) && c != '<' && c != '>' && c != '/'
@@ -149,6 +175,7 @@ public class XmlCheckerSolutionTwo {
             while (pos < len && isNameChar(text[pos])) pos++;
             String name = new String(text, nameStart, pos - nameStart);
 
+            NameList seenAttrs = new NameList();
             boolean selfClosing = false;
             while (true) {
                 while (pos < len && Character.isWhitespace(text[pos])) pos++;
@@ -161,7 +188,14 @@ public class XmlCheckerSolutionTwo {
                     pos++;
                     break;
                 }
+                int attrNameStart = pos;
                 while (pos < len && isNameChar(text[pos])) pos++;
+                String attrName = new String(text, attrNameStart, pos - attrNameStart);
+                if (seenAttrs.contains(attrName)) {
+                    return Result.fail(lineOf[attrNameStart], ErrorCode.DUPLICATE_ATTRIBUTE);
+                }
+                seenAttrs.addFirst(attrName);
+
                 while (pos < len && Character.isWhitespace(text[pos])) pos++;
                 if (pos < len && text[pos] == '=') pos++;
                 while (pos < len && Character.isWhitespace(text[pos])) pos++;
