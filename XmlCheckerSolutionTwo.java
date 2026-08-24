@@ -10,8 +10,8 @@ import java.util.stream.Stream;
  * CSC201 DSA Task 1 -- XML Checker
  * Solution Two
  *
- * Student name :
- * Student ID   :
+ * Student name : Locky Gebhardt
+ * Student ID   : 1086813
  *
  * Data-structure combination used by this solution:
  * recursion + linked list. parseElement recurses per child so the call
@@ -76,7 +76,7 @@ public class XmlCheckerSolutionTwo {
         }
     }
 
-    // one node of the attribute-name list
+    // one node of the attribute name list
     private static final class NameNode {
         final String name;
         final NameNode next;
@@ -108,7 +108,7 @@ public class XmlCheckerSolutionTwo {
                 && c != '=' && c != '"' && c != '\'';
     }
 
-    // recursive descent parser; nesting lives on the call stack, not an explicit stack
+    // recursive descent parser. nesting lives on the call stack, not an explicit stack
     private static final class Parser {
         private final char[] text;
         private final int[] lineOf;
@@ -246,7 +246,6 @@ public class XmlCheckerSolutionTwo {
 
     /**
      * checks whether the document is well-formed.
-     *
      * @param lines file content, one line per entry
      * @return ok(), or fail() for the first violation found
      */
@@ -273,5 +272,4 @@ public class XmlCheckerSolutionTwo {
 
         return new Parser(text, lineOf, len).parseDocument();
     }
-
 }

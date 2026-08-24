@@ -11,8 +11,8 @@ import java.util.stream.Stream;
  * CSC201 DSA Task 1 -- XML Checker
  * Solution One
  *
- * Student name :
- * Student ID   :
+ * Student name : Locky Gebhardt
+ * Student ID   : 1086813
  *
  * Data-structure combination used by this solution:
  * array-based stack + array. a stack tracks currently open tags for
@@ -121,7 +121,7 @@ public class XmlCheckerSolutionOne {
     }
 
     /**
-     * checks whether the document is well-formed.
+     * checks whether the document is well-formed
      *
      * @param lines file content, one line per entry
      * @return ok(), or fail() for the first violation found
